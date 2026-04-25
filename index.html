@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Навигатор Развития Ульяны 5+</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <!-- Используем современную версию Babel для предотвращения ошибок -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    @media print {
+      .no-print { display: none !important; }
+      .print-card { break-inside: avoid; border: 1px solid #e2e8f0; margin-bottom: 20px; box-shadow: none !important; }
+      body { background: white; }
+    }
+    input[type="checkbox"] {
+      -webkit-appearance: none;
+      appearance: none;
+      background-color: #fff;
+      margin: 0;
+      font: inherit;
+      color: currentColor;
+      width: 1.25em;
+      height: 1.25em;
+      border: 2px solid currentColor;
+      border-radius: 0.35em;
+      display: grid;
+      place-content: center;
+      cursor: pointer;
+    }
+    input[type="checkbox"]::before {
+      content: "";
+      width: 0.65em;
+      height: 0.65em;
+      transform: scale(0);
+      transition: 120ms transform ease-in-out;
+      box-shadow: inset 1em 1em white;
+      background-color: transform;
+      transform-origin: bottom left;
+      clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+    }
+    input[type="checkbox"]:checked::before { transform: scale(1); }
+    .checkbox-blue:checked { background-color: #3b82f6; border-color: #3b82f6; color: white; }
+    .checkbox-purple:checked { background-color: #a855f7; border-color: #a855f7; color: white; }
+    .checkbox-green:checked { background-color: #22c55e; border-color: #22c55e; color: white; }
+    .checkbox-orange:checked { background-color: #f97316; border-color: #f97316; color: white; }
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    
+    @keyframes toast-slide-up {
+      0% { transform: translate(-50%, 100%); opacity: 0; }
+      10%, 90% { transform: translate(-50%, 0); opacity: 1; }
+      100% { transform: translate(-50%, 100%); opacity: 0; }
+    }
+    .animate-toast {
+      animation: toast-slide-up 3s ease-in-out forwards;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo } = React;
+
+    // --- ИКОНКИ ---
+    const IconCalendar = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>;
+    const IconPrint = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>;
+    const IconSettings = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>;
+    const IconDownload = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>;
+    const IconUpload = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>;
+    const IconSearch = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>;
+    const IconChevronDown = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>;
+    const IconChevronUp = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>;
+    const IconCheckCircle = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>;
+    const IconShare = () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>;
+
+    // --- ДАННЫЕ ПЛАНА (30 ДНЕЙ) ---
+    const PLAN_DATA = [
+      { day: 1, title: "День открытий", tasks: { speech: "Расскажи, что ты видишь за окном, назвав 5 разных цветов.", logic: "Собери пазл на 15-20 деталей или построй башню по образцу.", control: "Игра 'Замри': танцуем под музыку, музыка стоп - замереть.", diet: "Добавьте в обед один новый или забытый овощ." } },
+      { day: 2, title: "День историй", tasks: { speech: "Вспомни и расскажи сказку 'Колобок' от лица Лисы.", logic: "Найди лишний предмет из 4 (например: яблоко, груша, банан, машинка).", control: "Сортировка игрушек: убираем только красные, затем только мягкие.", diet: "Выпить стакан чистой воды сразу после пробуждения." } },
+      { day: 3, title: "День ритма", tasks: { speech: "Прохлопай ритм своего имени и имен членов семьи.", logic: "Продолжи узор: выложи последовательность (кубик-шарик-кубик-...).", control: "Пройди по прямой линии (начерченной или ленте), не оступаясь.", diet: "Съесть порцию свежих ягод или фруктов на перекус." } },
+      { day: 4, title: "День сыщика", tasks: { speech: "Опиши любимую игрушку, не называя ее. Пусть родитель угадает.", logic: "Спрячьте 3 предмета. Пусть ребенок найдет их по словесным подсказкам.", control: "Игра 'Да и Нет не говорить': отвечать на вопросы без этих слов (3 мин).", diet: "Включить в рацион яйцо (вареное, омлет)." } },
+      { day: 5, title: "День архитектора", tasks: { speech: "Придумай рифму к словам: кошка, дом, каша.", logic: "Построй из конструктора гараж строго для 3 машинок.", control: "Удерживай баланс на одной ноге, пока родитель считает до 10.", diet: "Рыбный день: предложите блюдо из рыбы." } },
+      { day: 6, title: "День эмоций", tasks: { speech: "Покажи мимикой: радость, грусть, удивление, злость. Назови их.", logic: "Разложи картинки или фото семьи от самого младшего к старшему.", control: "Дыхание: глубокий вдох носом (нюхаем цветок), выдох ртом (дуем на свечу).", diet: "Добавьте горсть орехов или семечек в кашу/йогурт." } },
+      { day: 7, title: "День традиций", tasks: { speech: "Вспомните вместе самое яркое событие прошедшей недели.", logic: "Сыграйте в крестики-нолики или простую настольную игру.", control: "Уборка по правилу: ребенок руководит уборкой 5 минут, отдавая четкие команды.", diet: "Совместное приготовление семейного ужина (ребенок моет/мешает)." } },
+      { day: 8, title: "День фантазера", tasks: { speech: "Что было бы, если бы кошки умели летать? Придумай 3 последствия.", logic: "Пройди лабиринт на бумаге (распечатать заранее).", control: "Игра 'Съедобное-несъедобное' с мячом.", diet: "Ориентир на цельнозерновые: гречка, овсянка или цельнозерновой хлеб." } },
+      { day: 9, title: "День сортировки", tasks: { speech: "Назови 5 диких животных и 5 домашних.", logic: "Рассортируй перемешанные макароны и фасоль по разным мискам.", control: "Выполни команду из 3 шагов: 'возьми мяч, положи на стул, принеси книгу'.", diet: "Молочный продукт без добавленного сахара (кефир, творог, ряженка)." } },
+      { day: 10, title: "День противоположностей", tasks: { speech: "Сыграем в антонимы: горячий-..., высокий-..., быстрый-...", logic: "Найди 5 отличий на двух похожих картинках.", control: "Игра 'Карлики и великаны' (на слово карлики - присесть, великаны - встать).", diet: "Сделайте тарелку 'Радуга': еда 3-4 разных цветов на одной тарелке." } },
+      { day: 11, title: "День памяти", tasks: { speech: "Выучи наизусть короткое четверостишие.", logic: "Покажите 5 предметов, накройте платком, уберите один. Чего не стало?", control: "Неси стакан, наполненный водой до краев, из кухни в комнату не пролив.", diet: "Бобовые: горошек, фасоль, чечевица или хумус." } },
+      { day: 12, title: "День профессий", tasks: { speech: "Расскажи, чем занимается врач, строитель, повар.", logic: "Соотнеси инструменты с профессиями (шприц, молоток, кастрюля).", control: "Ролевая игра: ребенок 'врач', вы 'пациент'. Строго соблюдаем правила роли.", diet: "Похрустим: свежая морковь, яблоко или сельдерей." } },
+      { day: 13, title: "День внимательности", tasks: { speech: "Назови все круглые предметы в этой комнате.", logic: "Выложи узор из спичек или зубочисток по нарисованному образцу.", control: "Слушай хлопки: 1 хлопок - прыжок, 2 хлопка - присесть.", diet: "Пьем воду за 30 минут до еды." } },
+      { day: 14, title: "День самостоятельности", tasks: { speech: "Объясни инопланетянину, для чего нужен стул и как им пользоваться.", logic: "Сгруппируй предметы по материалу (дерево, пластик, металл).", control: "Самостоятельно выбери одежду на завтра и аккуратно сложи.", diet: "Слепое тестирование: закрой глаза и угадай кусочек овоща или фрукта на вкус." } },
+      { day: 15, title: "День режиссера", tasks: { speech: "Перескажи любимый мультфильм так, чтобы захотелось его посмотреть.", logic: "Разложи 4 картинки комикса/истории в правильной последовательности.", control: "Игра 'Тише едешь - дальше будешь'.", diet: "Творожный день: сырники, запеканка или просто творог с ягодами." } },
+      { day: 16, title: "День музыки", tasks: { speech: "Угадай мелодию: пропойте мотив известной детской песни без слов.", logic: "Собери разрезную картинку (разрежьте открытку на 6-8 неровных частей).", control: "Двигайся под музыку, но только на носочках.", diet: "Мясной ориентир: белое мясо птицы без зажаристой корочки." } },
+      { day: 17, title: "День масштабов", tasks: { speech: "Назови 3 очень больших вещи и 3 очень маленьких.", logic: "Оцени на глаз, что тяжелее: книга или машинка? Проверьте.", control: "Нарисуй круг, не отрывая руки от бумаги.", diet: "Добавляем зелень: укроп, петрушка или шпинат в привычное блюдо." } },
+      { day: 18, title: "День ассоциаций", tasks: { speech: "Что бывает желтым и пушистым? (Цыпленок, одуванчик). Придумай свое.", logic: "Четвертый лишний, но по сложному признаку (одежда, одежда, обувь, шкаф).", control: "Пройди по комнате с книгой на голове, не уронив ее.", diet: "Приготовьте натуральный лимонад (вода, лимон, мята) вместо сока." } },
+      { day: 19, title: "День времени", tasks: { speech: "Что мы делаем утром, что днем, а что вечером? Составь рассказ.", logic: "Покажи на часах со стрелками ровно 3 часа, 6 часов.", control: "Ждем 1 минуту в тишине. Ребенок должен сказать, когда, по его мнению, минута прошла.", diet: "Суп-пюре или легкий бульон на обед." } },
+      { day: 20, title: "День тактильности", tasks: { speech: "Опиши на ощупь с закрытыми глазами 3 разных предмета.", logic: "Игра 'Чудесный мешочек': угадай на ощупь, что спрятано внутри.", control: "Завязываем шнурки или застегиваем мелкие пуговицы на время.", diet: "Перекус из сухофруктов (изюм, курага) вместо конфет." } },
+      { day: 21, title: "День помощника", tasks: { speech: "Позвоните бабушке/дедушке и расскажи 3 новости за неделю.", logic: "Помоги разобрать покупки: что в холодильник, что в шкаф, что в ванную.", control: "Помоги накрыть на стол, соблюдая симметрию (вилка слева, нож/ложка справа).", diet: "Приготовьте вместе полезный десерт (запеченное яблоко)." } },
+      { day: 22, title: "День звуков", tasks: { speech: "Определи первый звук в словах: А-а-арбуз, М-м-машина, С-с-солнце.", logic: "Повтори узор хлопков (ритмический диктант).", control: "Игра 'Шпионы': двигаемся по квартире абсолютно бесшумно.", diet: "Красный овощ или фрукт в рационе (помидор, перец, гранат)." } },
+      { day: 23, title: "День ориентации", tasks: { speech: "Расскажи, как дойти от твоей кровати до кухни (налево, прямо).", logic: "Графический диктант: по клеточкам (вверх, вправо, вниз).", control: "Сыграйте в 'Симон говорит' на английском или просто очень быстро.", diet: "Каша с добавлением сливочного масла на завтрак." } },
+      { day: 24, title: "День наблюдателя", tasks: { speech: "Посмотри в окно 1 минуту. Отвернись и назови 5 вещей, которые запомнил.", logic: "Найди пару каждому носку после стирки.", control: "Смотрим друг другу в глаза и не смеемся (кто дольше).", diet: "Рыбный день 2: запеченная рыба или рыбные котлеты." } },
+      { day: 25, title: "День загадок", tasks: { speech: "Загадай мне загадку, описывая предмет, а я угадаю.", logic: "Реши простую логическую задачу (На ветке сидели 3 птички, 1 улетела...).", control: "Игра 'Летает - не летает' (на летящее поднимаем руки).", diet: "Темно-зеленый овощ (брокколи, огурец, цуккини)." } },
+      { day: 26, title: "День геометрии", tasks: { speech: "Назови предметы в доме, похожие на квадрат и прямоугольник.", logic: "Сложи квадрат из нескольких неравных треугольников (из бумаги).", control: "Собери рассыпанные зубочистки или спички двумя пальцами (пинцетный захват).", diet: "Кисломолочный напиток перед сном." } },
+      { day: 27, title: "День сказочника", tasks: { speech: "Придумай новую концовку для сказки 'Теремок'.", logic: "Разложи события в порядке: семечко, росток, дерево, яблоко.", control: "Голос громче-тише: говорим по команде шепотом, нормально, громко.", diet: "Салат из свежей капусты и моркови с маслом." } },
+      { day: 28, title: "День подведения итогов", tasks: { speech: "Расскажи, что тебе больше всего понравилось делать в этом месяце.", logic: "Соберите самый сложный пазл из тех, что есть дома.", control: "Самостоятельно собери рюкзак на прогулку, ничего не забыв.", diet: "Праздничный, но полезный ужин: любимое блюдо ребенка, но в здоровой версии." } },
+      { day: 29, title: "День релакса", tasks: { speech: "Просто поболтайте перед сном в темноте о мечтах.", logic: "Рассматриваем облака или тени: на что они похожи?", control: "Массаж с проговариванием частей тела (релаксация).", diet: "Пьем воду, травяной или фруктовый чай." } },
+      { day: 30, title: "День чемпиона", tasks: { speech: "Торжественная речь: похвали себя за старания.", logic: "Сыграйте в любимую настольную игру месяца.", control: "Организуйте домашнюю полосу препятствий и пройдите ее по правилам.", diet: "Вручение 'вкусного диплома' - домашнее печенье или любимый фрукт." } }
+    ];
+
+    function useLocalStorage(key, initialValue) {
+      const [storedValue, setStoredValue] = useState(() => {
+        try {
+          const item = window.localStorage.getItem(key);
+          return item ? JSON.parse(item) : initialValue;
+        } catch (error) {
+          return initialValue;
+        }
+      });
+      const setValue = value => {
+        try {
+          const valueToStore = value instanceof Function ? value(storedValue) : value;
+          setStoredValue(valueToStore);
+          window.localStorage.setItem(key, JSON.stringify(valueToStore));
+        } catch (error) {}
+      };
+      return [storedValue, setValue];
+    }
+
+    const formatDate = (date) => {
+      return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+    };
+
+    const formatIcsDate = (date, hourOffset = 0) => {
+      const d = new Date(date);
+      d.setHours(9 + hourOffset, 0, 0, 0);
+      return d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    };
+
+    function App() {
+      const [userData, setUserData] = useLocalStorage('nd_user_data', {
+        childName: 'Ребёнок',
+        startDate: new Date().toISOString().split('T')[0]
+      });
+      
+      const [progress, setProgress] = useLocalStorage('nd_progress', {});
+      
+      const [expandedDays, setExpandedDays] = useState({ 1: true });
+      const [currentWeek, setCurrentWeek] = useState('all');
+      const [searchQuery, setSearchQuery] = useState('');
+      const [showSettings, setShowSettings] = useState(false);
+      const [toastMessage, setToastMessage] = useState(null);
+
+      const showToast = (msg) => {
+        setToastMessage(msg);
+        setTimeout(() => setToastMessage(null), 3000);
+      };
+
+      const getDayDate = (dayNumber) => {
+        const d = new Date(userData.startDate);
+        d.setDate(d.getDate() + (dayNumber - 1));
+        return d;
+      };
+
+      const generateIcsFile = (daysArray, filename = 'plan.ics') => {
+        let ics = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//NavigatorRazvitiya//RU\r\nCALSCALE:GREGORIAN\r\n";
+        
+        daysArray.forEach(day => {
+          const dDate = getDayDate(day.day);
+          const dtStart = formatIcsDate(dDate, 0);
+          const dtEnd = formatIcsDate(dDate, 1);
+          
+          ics += "BEGIN:VEVENT\r\n";
+          ics += `UID:day${day.day}-${Date.now()}@navigator\r\n`;
+          ics += `DTSTAMP:${formatIcsDate(new Date())}\r\n`;
+          ics += `DTSTART:${dtStart}\r\n`;
+          ics += `DTEND:${dtEnd}\r\n`;
+          ics += `SUMMARY:День ${day.day}: ${day.title}\r\n`;
+          ics += `DESCRIPTION:Речь: ${day.tasks.speech}\\nЛогика: ${day.tasks.logic}\\nСамоконтроль: ${day.tasks.control}\\nПитание: ${day.tasks.diet}\r\n`;
+          ics += "END:VEVENT\r\n";
+        });
+        
+        ics += "END:VCALENDAR";
+        
+        const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      };
+
+      const toggleTask = (day, category) => {
+        setProgress(prev => ({ ...prev, [day]: { ...prev[day], [category]: !prev[day]?.[category] } }));
+      };
+
+      const updateObservation = (day, field, value) => {
+        setProgress(prev => ({ ...prev, [day]: { ...prev[day], [field]: value } }));
+      };
+
+      const markAllDay = (day) => {
+        setProgress(prev => ({ ...prev, [day]: { ...prev[day], speech: true, logic: true, control: true, diet: true } }));
+      };
+
+      const handleExportJson = () => {
+        const dataStr = JSON.stringify({ userData, progress });
+        const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+        const link = document.createElement('a');
+        link.setAttribute('href', dataUri);
+        link.setAttribute('download', 'navigator_backup.json');
+        link.click();
+      };
+
+      const handleImportJson = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const obj = JSON.parse(event.target.result);
+            if (obj.userData) setUserData(obj.userData);
+            if (obj.progress) setProgress(obj.progress);
+            showToast('Данные успешно загружены!');
+          } catch (err) { showToast('Ошибка чтения файла.'); }
+        };
+        reader.readAsText(file);
+      };
+
+      const stats = useMemo(() => {
+        let completedDays = 0, counts = { speech: 0, logic: 0, control: 0, diet: 0 };
+        PLAN_DATA.forEach(d => {
+          const p = progress[d.day] || {};
+          if (p.speech) counts.speech++;
+          if (p.logic) counts.logic++;
+          if (p.control) counts.control++;
+          if (p.diet) counts.diet++;
+          if (p.speech && p.logic && p.control && p.diet) completedDays++;
+        });
+        const totalTasks = counts.speech + counts.logic + counts.control + counts.diet;
+        return {
+          completedDays,
+          totalPercent: Math.round((totalTasks / 120) * 100) || 0,
+          speechPercent: Math.round((counts.speech / 30) * 100) || 0,
+          logicPercent: Math.round((counts.logic / 30) * 100) || 0,
+          controlPercent: Math.round((counts.control / 30) * 100) || 0,
+          dietPercent: Math.round((counts.diet / 30) * 100) || 0,
+        };
+      }, [progress]);
+
+      const filteredDays = useMemo(() => {
+        return PLAN_DATA.filter(day => {
+          if (currentWeek !== 'all') {
+            const startDay = (currentWeek - 1) * 7 + 1;
+            const endDay = currentWeek * 7;
+            if (day.day < startDay || day.day > endDay) return false;
+          }
+          if (searchQuery) {
+            const query = searchQuery.toLowerCase();
+            return `${day.title} ${day.tasks.speech} ${day.tasks.logic} ${day.tasks.control} ${day.tasks.diet}`.toLowerCase().includes(query);
+          }
+          return true;
+        });
+      }, [currentWeek, searchQuery]);
+
+      return (
+        <div className="min-h-screen pb-10">
+          {/* Header */}
+          <header className="bg-white border-b border-slate-200 sticky top-0 z-10 no-print">
+            <div className="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
+              <div className="flex gap-3 items-center">
+                <div className="bg-indigo-600 text-white p-2 rounded-xl"><IconCalendar /></div>
+                <div>
+                  <h1 className="font-bold text-lg leading-tight">Навигатор Развития 5+</h1>
+                  <p className="text-xs text-slate-500">Профиль: {userData.childName}</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => window.print()} className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg"><IconPrint /></button>
+                <button onClick={() => setShowSettings(!showSettings)} className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg"><IconSettings /></button>
+              </div>
+            </div>
+
+            {/* Settings Panel */}
+            {showSettings && (
+              <div className="max-w-5xl mx-auto px-4 py-4 bg-slate-50 border-b border-slate-200 grid md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm mb-1">Имя ребёнка</label>
+                    <input type="text" value={userData.childName} onChange={e => setUserData({...userData, childName: e.target.value})} className="w-full p-2 border rounded-lg" />
+                  </div>
+                  <div>
+                    <label className="block text-sm mb-1">Дата старта (День 1)</label>
+                    <input type="date" value={userData.startDate} onChange={e => setUserData({...userData, startDate: e.target.value})} className="w-full p-2 border rounded-lg" />
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div className="text-sm font-medium mb-1">Управление данными</div>
+                  <div className="flex gap-2">
+                    <button onClick={handleExportJson} className="flex gap-2 bg-white border px-3 py-2 rounded-lg text-sm"><IconDownload /> Резервная копия</button>
+                    <label className="flex gap-2 bg-white border px-3 py-2 rounded-lg text-sm cursor-pointer"><IconUpload /> Загрузить
+                      <input type="file" accept=".json" onChange={handleImportJson} className="hidden" />
+                    </label>
+                  </div>
+                  <button onClick={() => generateIcsFile(PLAN_DATA, 'navigator_plan_all.ics')} className="flex gap-2 bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-2 rounded-lg text-sm w-full justify-center hover:bg-indigo-100 transition">
+                    <IconCalendar /> Выгрузить весь план в Календарь (Универсальный файл)
+                  </button>
+                </div>
+              </div>
+            )}
+          </header>
+
+          <main className="max-w-5xl mx-auto px-4 py-6">
+            {/* Stats */}
+            <section className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 mb-8 grid md:grid-cols-3 gap-6 items-center">
+              <div className="flex items-center gap-4 border-b md:border-b-0 md:border-r border-slate-100 pb-4 md:pb-0">
+                <div className="relative w-20 h-20">
+                  <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                    <path className="text-slate-100" strokeWidth="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    <path className="text-indigo-600 transition-all duration-1000" strokeDasharray={`${stats.totalPercent}, 100`} strokeWidth="3" strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center font-bold text-lg text-indigo-900">{stats.totalPercent}%</div>
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold">Прогресс</h2>
+                  <p className="text-sm text-slate-500">Завершено дней: <b>{stats.completedDays}</b> / 30</p>
+                </div>
+              </div>
+              <div className="md:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {[['Речь', stats.speechPercent, 'bg-blue-500'], ['Логика', stats.logicPercent, 'bg-purple-500'], ['Контроль', stats.controlPercent, 'bg-green-500'], ['Еда', stats.dietPercent, 'bg-orange-500']].map(([label, pct, bg]) => (
+                  <div key={label}>
+                    <div className="flex justify-between text-xs mb-1"><span className="text-slate-500">{label}</span><span className="font-bold">{pct}%</span></div>
+                    <div className="h-2 w-full bg-slate-100 rounded-full"><div className={`h-full ${bg} rounded-full`} style={{ width: `${pct}%` }}></div></div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* Filters */}
+            <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6 no-print">
+              <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1">
+                {['all', 1, 2, 3, 4, 5].map(w => (
+                  <button key={w} onClick={() => setCurrentWeek(w)} className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-medium ${currentWeek === w ? 'bg-slate-800 text-white' : 'bg-white border text-slate-600'}`}>
+                    {w === 'all' ? 'Все дни' : w === 5 ? 'Финал' : `Неделя ${w}`}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2 relative">
+                <div className="absolute left-3 top-2.5 text-slate-400"><IconSearch /></div>
+                <input type="text" placeholder="Поиск..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full sm:w-48 pl-10 pr-3 py-2 border rounded-xl text-sm" />
+                <button onClick={() => setExpandedDays(Object.fromEntries(PLAN_DATA.map(d => [d.day, true])))} className="p-2 border rounded-xl text-slate-500"><IconChevronDown /></button>
+                <button onClick={() => setExpandedDays({})} className="p-2 border rounded-xl text-slate-500"><IconChevronUp /></button>
+              </div>
+            </div>
+
+            {/* List */}
+            <div className="grid gap-4">
+              {filteredDays.map(dayData => {
+                const isExp = expandedDays[dayData.day];
+                const p = progress[dayData.day] || {};
+                const isDone = p.speech && p.logic && p.control && p.diet;
+                
+                return (
+                  <div key={dayData.day} className={`print-card bg-white rounded-2xl border ${isDone ? 'border-indigo-200 bg-indigo-50/20' : 'border-slate-200'} overflow-hidden`}>
+                    {/* Card Header */}
+                    <div className="px-5 py-4 cursor-pointer flex justify-between items-center hover:bg-slate-50" onClick={() => setExpandedDays(prev => ({...prev, [dayData.day]: !prev[dayData.day]}))}>
+                      <div className="flex gap-4 items-center">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${isDone ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                          {isDone ? <IconCheckCircle /> : dayData.day}
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-slate-800">{dayData.title}</h3>
+                          <p className="text-sm text-slate-500">{formatDate(getDayDate(dayData.day))}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-3 text-slate-400 no-print">
+                        <div className="hidden sm:flex gap-1.5 items-center">
+                          <div className={`w-2.5 h-2.5 rounded-full ${p.speech ? 'bg-blue-500' : 'bg-slate-200'}`} />
+                          <div className={`w-2.5 h-2.5 rounded-full ${p.logic ? 'bg-purple-500' : 'bg-slate-200'}`} />
+                          <div className={`w-2.5 h-2.5 rounded-full ${p.control ? 'bg-green-500' : 'bg-slate-200'}`} />
+                          <div className={`w-2.5 h-2.5 rounded-full ${p.diet ? 'bg-orange-500' : 'bg-slate-200'}`} />
+                        </div>
+                        {isExp ? <IconChevronUp /> : <IconChevronDown />}
+                      </div>
+                    </div>
+
+                    {isExp && (
+                      <div className="px-5 pb-5 pt-2 border-t border-slate-100">
+                        <div className="grid md:grid-cols-2 gap-8">
+                          
+                          {/* Tasks */}
+                          <div className="space-y-3">
+                            {[
+                              ['speech', 'Речь и кругозор', 'text-blue-700 bg-blue-50 border-blue-200 checkbox-blue'],
+                              ['logic', 'Логика и память', 'text-purple-700 bg-purple-50 border-purple-200 checkbox-purple'],
+                              ['control', 'Самоконтроль', 'text-green-700 bg-green-50 border-green-200 checkbox-green'],
+                              ['diet', 'Питание', 'text-orange-700 bg-orange-50 border-orange-200 checkbox-orange']
+                            ].map(([cat, label, style]) => {
+                              return (
+                                <div key={cat} className={`flex gap-3 p-3 rounded-xl border ${p[cat] ? 'opacity-70 bg-slate-50 border-slate-200' : style}`}>
+                                  <input id={`t-${dayData.day}-${cat}`} type="checkbox" checked={!!p[cat]} onChange={() => toggleTask(dayData.day, cat)} className={`mt-0.5 ${style.split(' ').pop()}`} />
+                                  <div className="flex-1">
+                                    <div className="flex justify-between items-start mb-0.5">
+                                      <label htmlFor={`t-${dayData.day}-${cat}`} className={`text-xs font-bold uppercase tracking-wider cursor-pointer ${p[cat]?'text-slate-400':''}`}>{label}</label>
+                                    </div>
+                                    <label htmlFor={`t-${dayData.day}-${cat}`} className={`text-sm cursor-pointer block ${p[cat]?'text-slate-500 line-through':'text-slate-800'}`}>{dayData.tasks[cat]}</label>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {/* Notes */}
+                          <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 flex flex-col">
+                            <h4 className="font-semibold text-sm mb-3">Дневник наблюдений</h4>
+                            <div className="flex gap-4 mb-3">
+                              <div>
+                                <span className="text-xs text-slate-500 block mb-1">Настроение:</span>
+                                <div className="flex gap-1 bg-white p-1 rounded-lg border w-max text-lg">
+                                  <button onClick={(e) => {e.stopPropagation(); updateObservation(dayData.day, 'mood', 'good')}} className={`p-1 rounded ${p.mood==='good'?'bg-green-100 opacity-100':'opacity-50 grayscale'}`}>😊</button>
+                                  <button onClick={(e) => {e.stopPropagation(); updateObservation(dayData.day, 'mood', 'neutral')}} className={`p-1 rounded ${p.mood==='neutral'?'bg-amber-100 opacity-100':'opacity-50 grayscale'}`}>😐</button>
+                                  <button onClick={(e) => {e.stopPropagation(); updateObservation(dayData.day, 'mood', 'bad')}} className={`p-1 rounded ${p.mood==='bad'?'bg-red-100 opacity-100':'opacity-50 grayscale'}`}>☹️</button>
+                                </div>
+                              </div>
+                              <div>
+                                <span className="text-xs text-slate-500 block mb-1">Энергия:</span>
+                                <div className="flex gap-1 bg-white p-1 rounded-lg border w-max text-lg">
+                                  <button onClick={(e) => {e.stopPropagation(); updateObservation(dayData.day, 'energy', 'high')}} className={`p-1 rounded ${p.energy==='high'?'bg-emerald-100 opacity-100':'opacity-50 grayscale'}`}>⚡</button>
+                                  <button onClick={(e) => {e.stopPropagation(); updateObservation(dayData.day, 'energy', 'med')}} className={`p-1 rounded ${p.energy==='med'?'bg-blue-100 opacity-100':'opacity-50 grayscale'}`}>🔋</button>
+                                  <button onClick={(e) => {e.stopPropagation(); updateObservation(dayData.day, 'energy', 'low')}} className={`p-1 rounded ${p.energy==='low'?'bg-slate-200 opacity-100':'opacity-50 grayscale'}`}>🪫</button>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <textarea 
+                              className="w-full flex-1 p-3 rounded-lg border text-sm resize-none" 
+                              placeholder="Что далось легко, а где нужна была помощь?"
+                              value={p.notes || ''} onChange={(e) => updateObservation(dayData.day, 'notes', e.target.value)}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Card Footer Actions */}
+                        <div className="mt-5 pt-4 border-t border-slate-100 flex flex-wrap justify-between gap-3 no-print">
+                          <button onClick={() => markAllDay(dayData.day)} className="text-sm font-medium text-indigo-600 hover:bg-indigo-50 px-2 py-1 rounded transition">✓ Отметить всё</button>
+                          <div className="flex gap-2">
+                            <button onClick={() => { 
+                              navigator.clipboard.writeText(`День ${dayData.day}: ${dayData.title}\nРечь: ${dayData.tasks.speech}\nЛогика: ${dayData.tasks.logic}\nКонтроль: ${dayData.tasks.control}\nПитание: ${dayData.tasks.diet}`);
+                              showToast("Текст заданий скопирован!"); 
+                            }} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-slate-100 rounded-lg hover:bg-slate-200 transition"><IconShare /> Текст</button>
+                            
+                            <button onClick={() => {
+                              generateIcsFile([dayData], `day${dayData.day}.ics`);
+                              showToast("Календарь скачан!");
+                            }} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-50 border rounded-lg hover:bg-slate-100 transition"><IconCalendar /> В Календарь</button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </main>
+          
+          {/* Toast Notification Element */}
+          {toastMessage && (
+            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-5 py-3 rounded-full shadow-xl z-50 text-sm font-medium animate-toast no-print pointer-events-none">
+              {toastMessage}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
