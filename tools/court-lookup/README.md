@@ -42,6 +42,19 @@ python sudrf_case_lookup.py \
 в разрешённые домены. Документация:
 https://code.claude.com/docs/en/claude-code-on-the-web
 
+## Запуск через GitHub Actions (без своей машины)
+
+Раннеры GitHub имеют открытый интернет, поэтому это самый простой способ
+получить дату, не настраивая ничего локально:
+
+1. Добавьте секрет: **Settings → Secrets and variables → Actions →
+   New repository secret**, имя `RUCAPTCHA_KEY`, значение — ваш ключ.
+2. Откройте вкладку **Actions → «Court case lookup» → Run workflow**,
+   введите номер дела (по умолчанию `13-298/2026`) и URL суда.
+3. Дата заседания появится в логе шага **Run lookup**.
+
+Workflow: `.github/workflows/court-lookup.yml`.
+
 ## Замечание про селекторы
 
 Модуль `sud_delo` у разных судов отличается версиями вёрстки, поэтому имена

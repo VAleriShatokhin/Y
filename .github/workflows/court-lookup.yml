@@ -1,0 +1,48 @@
+name: Court case lookup
+
+# Запуск вручную: Actions → "Court case lookup" → Run workflow.
+# Раннеры GitHub имеют открытый интернет, поэтому достучатся до sudrf.ru и rucaptcha.com,
+# что недоступно из облачного окружения Claude Code (там white-list сети).
+#
+# Перед первым запуском добавьте секрет репозитория:
+#   Settings → Secrets and variables → Actions → New repository secret
+#   Name: RUCAPTCHA_KEY   Value: <ваш ключ RuCaptcha/2captcha>
+
+on:
+  workflow_dispatch:
+    inputs:
+      court:
+        description: "Базовый URL суда"
+        required: true
+        default: "https://mitishy--mo.sudrf.ru"
+      case:
+        description: "Номер дела"
+        required: true
+        default: "13-298/2026"
+
+jobs:
+  lookup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install -r tools/court-lookup/requirements.txt
+          python -m playwright install --with-deps chromium
+
+      - name: Run lookup
+        env:
+          RUCAPTCHA_KEY: ${{ secrets.RUCAPTCHA_KEY }}
+        run: |
+          if [ -z "$RUCAPTCHA_KEY" ]; then
+            echo "::error::Не задан секрет RUCAPTCHA_KEY (Settings → Secrets and variables → Actions)"
+            exit 1
+          fi
+          python tools/court-lookup/sudrf_case_lookup.py \
+            --court "${{ inputs.court }}" \
+            --case "${{ inputs.case }}"
