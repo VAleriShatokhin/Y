@@ -46,3 +46,13 @@ jobs:
           python tools/court-lookup/sudrf_case_lookup.py \
             --court "${{ inputs.court }}" \
             --case "${{ inputs.case }}"
+
+      - name: Upload debug dump (if lookup failed to find the date)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: court-lookup-debug
+          path: |
+            debug_page.png
+            debug_page.html
+          if-no-files-found: ignore

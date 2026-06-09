@@ -153,6 +153,16 @@ def lookup(court_url: str, case_number: str, api_key: str, headless: bool = True
         result["found"] = bool(m)
         result["raw_excerpt"] = body[:2000]
 
+        # 7. Если дату не нашли — сохраняем страницу для отладки селекторов.
+        if not result["found"]:
+            try:
+                page.screenshot(path="debug_page.png", full_page=True)
+                with open("debug_page.html", "w", encoding="utf-8") as f:
+                    f.write(page.content())
+                result["debug_dumped"] = True
+            except Exception:
+                pass
+
         browser.close()
     return result
 
